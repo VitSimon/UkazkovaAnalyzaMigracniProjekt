@@ -26,20 +26,18 @@ V současné době je cílová platforma složena z těchto systémů:
 Dále je v záměru vyvinout 3D konfigurátor produktů.
 
 ```mermaid
-architecture-beta
-    group eshop(cloud)[e shop]
-
-    service db(database)[MySQL] in eshop
-    service server(server)[PHP] in eshop
-
-    db:L -- R:server
-
-    group produweb(cloud)[Produktovy web]
-
-    service dbPW(database)[MS SQL] in produweb
-    service serverPW(server)[MS NET REST API Angular] in produweb
-
-    dbPW:L -- R:serverPW
+graph TD
+    subgraph eshop["E-shop"]
+        DB1[(MySQL)]
+        PHP1[PHP]
+        DB1 --> PHP1
+    end
+    
+    subgraph produweb["Produktový web"]
+        DB2[(MS SQL)]
+        NET[MS.NET REST API<br/>Angular]
+        DB2 --> NET
+    end
 ```
 
 ## B2C e-shop
@@ -94,12 +92,6 @@ architecture-beta
 - Architektonické očekávání:
   - Autentizace musí být řešena centrálně
   - Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
-
-# Výzvy a rizika
-
-## B2C e-shop
-
-- Je potřeba ověřit vhodnost práce eshopu s ohledem na 
 
 # Záměr cílového stavu
 
@@ -158,9 +150,16 @@ Pro budoucí řešení je však potřeba následující:
 
 ## Prezentační produktový web
 
+## 3D konfigurátor produktů
 
+# Výzvy a rizika
 
-## 3D konfigurátor produktů - souhrn záměru
+- 
+
+## B2C e-shop
+
+- Je potřeba ověřit vhodnost práce eshopu s ohledem na 
+
 
 # Návrh jednotného přihlašovacího mechanismu
 
