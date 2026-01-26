@@ -27,8 +27,7 @@ Dále je v záměru vyvinout 3D konfigurátor produktů.
 - Databáze: MySQL
 - Autentizace:
   - Přihlášení pomocí e-mailu nebo uživatelského jména a hesla
-  - Hesla jsou historicky ukládána pomocí různých hashovacích algoritmů (např.
-MD5, bcrypt)
+  - Hesla jsou historicky ukládána pomocí různých hashovacích algoritmů (např. MD5, bcrypt)
   - Systém nepodporuje SSO ani externí identity providery
 
 - Uživatelská data:
@@ -37,8 +36,7 @@ MD5, bcrypt)
 
 - Technická omezení:
   - E-shop je dlouhodobě v produkčním provozu
-  - Zásahy do přihlašovací logiky jsou možné pouze v omezeném rozsahu (riziko
-regresí)
+  - Zásahy do přihlašovací logiky jsou možné pouze v omezeném rozsahu (riziko regresí)
 
 ## Prezentační produktový web
 
@@ -66,7 +64,7 @@ Funkční využití účtu:
 
 ## Prezentační produktový web
 
-## 3D konfigurátor produktů
+## 3D konfigurátor produktů - souhrn záměru
 
 - Typ aplikace: samostatná webová aplikace (SPA)
 - Technologie:
@@ -98,3 +96,7 @@ Předložené řešení by mělo obsahovat:
 - Podrobný návrh technického řešení, včetně doporučení technologií.
 - Návrh postupu implementace a migrace.
 - Návrh na minimalizaci dopadů na uživatelskou zkušenost.
+
+Poznámka: Řešení by mělo zohledňovat fakt, že e-shop je klíčový pro tržby a
+výpadky nebo výrazné zásahy do login procesu nejsou akceptovatelné. Nevyžaduje se detailní
+technická implementace ani kód, důraz je kladen na architekturu, postup a zdůvodnění návrhu.
