@@ -12,6 +12,10 @@ Navrhněte způsob centralizované správy uživatelských účtů, která umož
 stávajících uživatelských profilů z existujících systémů pro přístup k novému 3D konfigurátoru,
 bez nutnosti zakládání nového profilu do každé služby / aplikace zvlášť.
 
+# Poznámky autora ke zperacování
+
+- Část informací v tomto dokumentu je převzata, případně odvozena z informací v zadání, které bylo poskytnuto
+
 # Současný stav
 
 V současné době je cílová platforma složena z těchto systémů:
@@ -47,24 +51,15 @@ Dále je v záměru vyvinout 3D konfigurátor produktů.
   - Vlastní registrační a přihlašovací mechanismus
   - Přihlášení pomocí e-mailu a hesla
   - Moderní hashování hesel
-Uživatelská data:
-  - Produktový web má samostatnou uživatelskou databázi, která je zcela nezávislá
-na e-shopu
-  - Uživatelé si zde mohou vytvořit účet výhradně pro účely práce s obsahem (např.
-ukládání konfigurací, poptávek, oblíbených produktů), aniž by měli nebo
-potřebovali účet v e-shopu
+- Uživatelská data:
+  - Produktový web má samostatnou uživatelskou databázi, která je zcela nezávislá na e-shopu
+  - Uživatelé si zde mohou vytvořit účet výhradně pro účely práce s obsahem (např. ukládání konfigurací, poptávek, oblíbených produktů), aniž by měli nebo potřebovali účet v e-shopu
   - V případě shodného e-mailu se stále jedná o odlišné účty v různých systémech
-Funkční využití účtu:
+- Funkční využití účtu:
   - Ukládání konfigurací a poptávek
   - Přístup k personalizovanému obsahu
 
-# Cílový stav
-
-## B2C e-shop
-
-## Prezentační produktový web
-
-## 3D konfigurátor produktů - souhrn záměru
+## 3D konfigurátor produktů - souhrn záměru budoucí aplikace
 
 - Typ aplikace: samostatná webová aplikace (SPA)
 - Technologie:
@@ -83,6 +78,28 @@ Funkční využití účtu:
   - Autentizace musí být řešena centrálně
   - Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
 
+# Výzvy a rizika
+
+
+
+# Záměr cílového stavu
+
+Na základě současného stavu a zjištěných požadavků bude v této kapitole naznačen v obecné rovině rámcový záměr budoucího cílového stavu.
+
+## B2C e-shop
+
+Vzhledem k tomu, že tento e-shop je v produkci, je tedy vysoce nežádoucí aby došlo k jakémukoli výpadku nebo nestabilitě aplikace nebo jejích procesů. Je tedy nutné tuto součást řešení ponechat beze změn.
+
+Pro budoucí řešení je však potřeba následující:
+- spolehlivě zjistit **přesný algoritmus šifrování hesel a jeho parametry**,
+- zajistit propojení ostatních služeb do **MySQL** databáze e-shopu pomocí servisního uživatele pro čtení, aby bylo možné integrovat účty, které jsou zde uložené
+
+## Prezentační produktový web
+
+
+
+## 3D konfigurátor produktů - souhrn záměru
+
 # Návrh jednotného přihlašovacího mechanismu
 
 # Technické požadavky
@@ -90,6 +107,13 @@ Funkční využití účtu:
 # Uživatelská zkušenost
 
 # Migrace a implementace
+
+# Podrobný návrh technického řešení, včetně doporučení technologií
+
+# Návrh postupu implementace a migrace
+
+# Návrh na minimalizaci dopadů na uživatelskou zkušenost
+
 
 Předložené řešení by mělo obsahovat:
 - Analýzu současného stavu a identifikaci klíčových výzev.
