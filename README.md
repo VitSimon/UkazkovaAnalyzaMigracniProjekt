@@ -25,6 +25,23 @@ V současné době je cílová platforma složena z těchto systémů:
 
 Dále je v záměru vyvinout 3D konfigurátor produktů.
 
+```mermaid
+architecture-beta
+    group eshop(cloud)[e shop]
+
+    service db(database)[MySQL] in eshop
+    service server(server)[PHP] in eshop
+
+    db:L -- R:server
+
+    group produweb(cloud)[Produktovy web]
+
+    service dbPW(database)[MS SQL] in produweb
+    service serverPW(server)[MS NET REST API Angular] in produweb
+
+    dbPW:L -- R:serverPW
+```
+
 ## B2C e-shop
 
 - Technologie: PHP (legacy řešení, převážně custom kód)
@@ -80,11 +97,49 @@ Dále je v záměru vyvinout 3D konfigurátor produktů.
 
 # Výzvy a rizika
 
+## B2C e-shop
 
+- Je potřeba ověřit vhodnost práce eshopu s ohledem na 
 
 # Záměr cílového stavu
 
 Na základě současného stavu a zjištěných požadavků bude v této kapitole naznačen v obecné rovině rámcový záměr budoucího cílového stavu.
+
+Záměr je vyvinout službu jednotného přihlášení, která bude procházet dvě báze dat uživatelských účtů a vstupní informace od uživatelů (email a heslo) proti těmto bázím ověřovat. Služba bude v případě úspěšného ověření zpřístupňovat potřebnou funkcionalitu. Z propojených služeb bude předávána URI služby v parametru **returnUrl**. Pokud předána nebude
+
+```mermaid
+architecture-beta
+    group eshop(cloud)[e shop]
+
+    service db(database)[MySQL] in eshop
+    service server(server)[PHP] in eshop
+
+    db:L -- R:server
+
+    group produweb(cloud)[Produktovy web]
+
+    service dbPW(database)[MS SQL] in produweb
+    service serverPW(server)[MS NET REST API Angular] in produweb
+
+    dbPW:L -- R:serverPW
+
+    group konfigurator(cloud)[3D konfigurator]
+
+    service serverK(server)[React nebo Angular REST] in konfigurator
+
+    group reverseProxy(cloud)[Reverse Proxy]
+
+    service serverRP(server)[NGinx] in reverseProxy
+
+    group authSluzba(cloud)[Autorizacni sluzba]
+
+    service serverAS(server)[React nebo Angular REST] in authSluzba
+
+    server:L -- R:serverRP
+    serverAS:L -- R:serverRP
+    serverK:L -- R:serverRP
+    serverPW:L -- R:serverRP
+```
 
 ## B2C e-shop
 
