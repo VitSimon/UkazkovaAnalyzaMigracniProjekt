@@ -78,7 +78,9 @@ graph TD
   - Ukládání konfigurací a poptávek
   - Přístup k personalizovanému obsahu
 
-## 3D konfigurátor produktů - souhrn záměru budoucí aplikace
+## 3D konfigurátor produktů (záměr)
+
+Aplikace je zmíněna v této chvíli jako budoucí záměr.
 
 - Typ aplikace: samostatná webová aplikace (SPA)
 - Technologie:
@@ -159,6 +161,52 @@ V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrá
 
 **Výsledek:** Vznikne obdoba Single Sign-On (SSO) přes ekosystém bez nutnosti refaktoringu kódu aplikací.
 
+### Platná session/JWT
+
+```mermaid
+sequenceDiagram
+    participant Client as Klient
+    participant API_Gateway as API Brána
+    participant Auth_Service as Centrální Auth služba
+    participant Target_Service as Cílová služba<br/>Eshop/Produkty...
+    participant Login_Page as Login stránka služby
+    participant DB as Auth DB
+
+    Note over Client, DB: SCÉNÁŘ 1: Platná session/JWT
+    Client->>+API_Gateway: POST/GET /eshop/cart
+    API_Gateway->>+Auth_Service: Ověř JWT/session
+    Auth_Service->>+DB: Query session/JWT
+    DB-->>-Auth_Service: Platné
+    Auth_Service-->>-API_Gateway: OK + redirect
+    API_Gateway->>+Target_Service: Forward request (/eshop/cart)
+    Target_Service-->>-API_Gateway: Response
+    API_Gateway-->>-Client: 200 OK
+```
+
+### Neplatný/chybějící JWT/session
+
+```mermaid
+sequenceDiagram
+    participant Client as Klient
+    participant API_Gateway as API Brána
+    participant Auth_Service as Centrální Auth služba
+    participant Target_Service as Cílová služba
+    participant Login_Page as Login stránka služby
+    participant DB as Auth DB
+
+    Note over Client, DB: Neplatný nebo chybějící JWT/session
+    Client->>+API_Gateway: GET /produkty/list<br/>Authorization: Bearer XYZ nebo bez cookie
+    API_Gateway->>+Auth_Service: Ověř JWT/session
+    Auth_Service->>+DB: Najdi session/JWT podle tokenu
+    DB-->>-Auth_Service: Nalezen expirovaný / žádný záznam
+    Auth_Service-->>-API_Gateway: 401 Unauthorized + info o cíli (/produkty)
+    API_Gateway-->>-Client: 302 Redirect na /produkty/login
+
+    Note over Client, Login_Page: Přesměrování na login
+    Client->>+Login_Page: GET /produkty/login
+    Login_Page-->>-Client: Login formulář
+```
+
 ## 3D konfigurátor produktů
 
 Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v **e-shopu** a **produkt webu**. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - **nedostatek informací u produktového webu**) a v případě aspoň jedné shody sestaví **JWT token**. Pro e-shop navíc **PHPSESSID**, protože PHP e-shop pravděpodobně neumí **JWT** zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.
@@ -173,7 +221,8 @@ V případě registrace nového uživatele, bude uživatel přesměrován na reg
   Nginx - představuje prověřený, z hlediska využítí zdrojů efektivní, rychlý a vysoce výkonný server. Bude použit pro řízení směrování požadavků uživatelů na služby. Zajistí přesměrování na centrální autorizaci pro nepřihlášené uživatele. Pokud kterékoli službě chybí zabezpečené spojení, API brána umožňuje dokonfigurovat TLS bez zásahu do služby a posílit tak bezpečnost
 - **centrální autentizační služba**  
   Keycloak - je standardním v komerčním prostředí využívaným IAM open-source řešením pro federaci identit a jednotné přihlášení. Obsahuje velké množství integračních konektorů, které řeší protokoly jako například SAML, OAuth2, JWT tokeny. Stejně tak je schopen integrovat i jednotlivé databáze uživatelů na úrovni přímého čtení DB (**User Storage Provider SPI**). S ohledem na požadavek nezasahovat do služeb toto považuji za zajímavé.
-  MFA se v rámci Keycloak konfiguruje v Realm Settings > Authentication > Flows, kde je možné vybrat z metod jako TOTP, WebAuthn nebo e-mail OTP, případně SMS
+  MFA se v rámci Keycloak konfiguruje v Realm Settings > Authentication > Flows, kde je možné vybrat z metod jako TOTP, WebAuthn nebo e-mail OTP, případně SMS  
+  PostgreSQL - ověřená open-source bezplatná serverová DB, která je přibližně o 10% výkonnější než MySQL. Keycloak v případě potřeby umí pracovat také s MySQL/MariaDB.
 
 ## Funkční požadavky
 
@@ -195,9 +244,9 @@ V případě registrace nového uživatele, bude uživatel přesměrován na reg
 
 ## Bezpečnost
 
-- Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsldku požadavku na zachování e-shopu)
+- Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsledku požadavku na zachování e-shopu beze změn)
 - Nedostupnost služeb v nové architektuře (chyba konfigurace sítě nebo směrovacích pravidel a filtrů na reverse proxy)
-- Pokud z dat z e-shopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože starý e-shop nemá prostředky na řízení platnosti **JWT**
+- Pokud z dat z e-shopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože e-shop nemá prostředky na řízení platnosti **JWT**
 
 ## Provoz a dostupnost
 
@@ -207,22 +256,22 @@ V případě registrace nového uživatele, bude uživatel přesměrován na reg
 ## Datová rizika
 
 - Při budoucím rozvoji a sdílení uživatelských bází systémů napříč ekosystémem může dojít k nesprávnému sdílení dat mezi účty, porušení uděleného GDPR souhlasu nebo rozsahu tohoto uděleného souhlasu (použití souhlasu pro jinou oblast).
-- Ukládání v PostgreSQL bude nešifrované nebo bude řešeno slabou šifrou. Existuje zde riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v operačním systému server
+- Ukládání v PostgreSQL bude nešifrované nebo bude řešeno slabou šifrou. Existuje zde riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v operačním systému serveru
 - 3D konfigurátor bude bez vlastní DB - při spoléhání na **JWT** tokeny z jiných systémů existuje riziko, že práva nebo role v systémech budou změněny, ale uživatel díky ještě platnému tokenu bude dočasně pracovat s širší sadou práv než mu od určitého okamžiku náleží.
 
 ## Rizika škálování a technického řešení
 
-- PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro e-shop. Existuje riziko, že e-shop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
+- PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). Autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro e-shop. Existuje riziko, že e-shop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
 
 # Uživatelská zkušenost
 
-Návrh předpokládá, že uživatelká zkušenost nebude negativně dotčena. Bude nadále možné využívat uživatelské účty, které už uživatelé mají bez nutnosti zásahu z jejich strany. Integrovaný systém bude z pohledu uživatele nadále využívat stejné přihlašovací obrazovky, jako byli zvyklí doposud.
+Návrh předpokládá, že uživatelská zkušenost nebude negativně dotčena. Bude nadále možné využívat uživatelské účty, které už uživatelé mají bez nutnosti zásahu z jejich strany. Integrovaný systém bude z pohledu uživatele nadále využívat stejné přihlašovací obrazovky, jako byli zvyklí doposud.
 
 Navržené řešení však otevírá cestu k vyšší bezpečnosti systému jako celku, ale zároveň ji nezbytně nevynucuje. Implementaci lze provést i později (například MFA a další kroky ověření).
 
 V případě nového 3D konfigurátoru je zmíněný proces složitější a u této služby bude použita jednotná přihlašovací obrazovka, kterou bude třeba dokonfigurovat s úpravou CSS stylu a použitím konfiguračních voleb na straně **Keycloak**, aby obrazovka vyhovovala grafickému vizuálu. Je možné, že některé části komunikace s uživatelem budou potřebovat úpravu jazykových řetězců.
 
-## Návrh na minimalizaci dopadů na uživatelskou zkušenost
+## Minimalizace dopadů na uživatele
 
 Z rozboru předpokládané uživatelské zkušenosti vyplývá, že je možné body, které mají negativní dopad na uživatele (především bezpečnost - **MFA**) zavádět později, případně nezavádět vůbec. Avšak je potřeba zmínit, že bezpečnost obecně za jisté mírné nepohodlí pro uživatele (jeden ověřovací krok, případně údaj v systému navíc) stojí.
 
@@ -242,5 +291,5 @@ Datová migrace v systému nebude podle návrhu probíhat.
 4. V rámci **iptables** je třeba provést konfigurací podsítí, omezit otevřené protokoly a porty na fyzickém systému
 5. Doplnění balíčku **fail2ban** a konfigurace k posílení bezpečnosti fyzického systému
 6. V rámci **Podman** a **Kubernetes** provést přípravu definic sady služeb (soubor **compose.yml**) s definicí jednotlivých celků (NGinx, Keycloak)
-7. Služby, které nelze kontejnerizovat, budou ponechány na serverech, na kterých jsou, měl by však být proveden audit způsobu zálohování a přezkoušet způsobilost prováděných záloh k obnově po havárii na izolované prázdné instamci systému. Tyto služby NGinx server umí obsluhovat, pokud budou servery řádně zasíťovány
+7. Služby, které nelze kontejnerizovat, budou ponechány na serverech, na kterých jsou. Měl by však být proveden audit způsobu zálohování a přezkoušet způsobilost prováděných záloh k obnově po havárii na izolované prázdné instamci systému. Tyto služby NGinx server umí obsluhovat, pokud budou servery řádně zasíťovány
 8. NGinx, Keycloak mají rozsáhlé dokumentace s příklady konfigurací, podle kterých je možno postupovat (poznámka autora: dle zadání nebude dokument tento bod více řešit)
