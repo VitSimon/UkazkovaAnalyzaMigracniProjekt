@@ -43,6 +43,7 @@ graph TD
         DB2 --> NET
     end
 ```
+![ ](svg_1.png "Současná architektura")
 
 ## B2C e-shop
 
@@ -145,6 +146,8 @@ graph TD
     class RP gateway
 ```
 
+![ ](svg_2.png "Nová architektura - návrh")
+
 V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrální autentizační službou** (Keycloak a PostgreSQL), která bude **předřazena před všechny requesty** do původních aplikací (e-shop, produktový web, v budoucnu 3D konfigurátor).
 
 **Předpokládané dosažené cíle řešení:**
@@ -183,6 +186,8 @@ sequenceDiagram
     API_Gateway-->>-Client: 200 OK
 ```
 
+![ ](svg_3.png "Zpracování : Platná session/JWT")
+
 ### Neplatný/chybějící JWT/session
 
 ```mermaid
@@ -206,6 +211,8 @@ sequenceDiagram
     Client->>+Login_Page: GET /produkty/login
     Login_Page-->>-Client: Login formulář
 ```
+
+![ ](svg_4.png "Zpracování : Neplatný/chybějící JWT/session")
 
 ## 3D konfigurátor produktů
 
