@@ -12,6 +12,10 @@ Navrhněte způsob centralizované správy uživatelských účtů, která umož
 stávajících uživatelských profilů z existujících systémů pro přístup k novému 3D konfigurátoru,
 bez nutnosti zakládání nového profilu do každé služby / aplikace zvlášť.
 
+- Architektonické očekávání:
+  - Autentizace musí být řešena centrálně
+  - Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
+
 # Poznámky autora ke zperacování
 
 - Část informací v tomto dokumentu je převzata, případně odvozena z informací v zadání, které bylo poskytnuto
@@ -89,9 +93,23 @@ graph TD
     - z e-shopu (např. z detailu produktu),
     - z produktového webu,
     - případně i samostatně přes přímý vstup (URL)
-- Architektonické očekávání:
-  - Autentizace musí být řešena centrálně
-  - Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
+
+# Technické požadavky
+
+## Funkční požadavky
+
+- Uživatel musí být nadále schopen využívat služby podle toho ve kterém systému je registrován
+- Pomocí účtu v současných systémech musí uživatel být schopen přistoupit k budoucímu 3D konfigurátoru
+- Systém ověří uživatele emailem a heslem
+- Registrace nových uživatelů budou nadále probíhat podle systému, který si uživatel zvolí
+
+## Nefunkční požadavky
+
+- Autentizace musí být řešena centrálně
+- Řešení počítat s budoucím rozšířením o další aplikace a služby
+- Centralizovaná autentizace s 99,9% dostupností, pastavená na OAuth2 a JWT tokenech
+- MFA pro všechny přístupy, audit logy
+- API brána bude obsluhovat a řídit veškerý provoz v systému (kontrolou stavu přihlášení a předávání requestů na služby od uživatelů do serverů služeb)
 
 # Záměr cílového stavu
 
@@ -147,7 +165,7 @@ V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrá
 **Předpokládané dosažené cíle řešení:**
 - **Žádné změny v aplikacích** (například v e-shopu)
 - Prostor pro **centralizované logování a monitoring** všech requestů
-- Prostor pro **zvýšení bezpečnosti** (například TLS, WAF, rate limiting)
+- Prostor pro **zvýšení bezpečnosti** (například TLS, firewall, rate limiting)
 
 ## Proces
 
@@ -160,20 +178,20 @@ V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrá
 
 ## 3D konfigurátor produktů
 
-Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v **eshopu** a **produkt webu**. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - **nedostatek informací u produktového webu**) a v případě aspoň jedné shody sestaví **JWT token**. Pro eshop navíc **PHPSESSID**, protože PHP eshopu pravděpodobně neumí **JWT** zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.
+Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v **e-shopu** a **produkt webu**. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - **nedostatek informací u produktového webu**) a v případě aspoň jedné shody sestaví **JWT token**. Pro e-shop navíc **PHPSESSID**, protože PHP e-shop pravděpodobně neumí **JWT** zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.
 
 # Výzvy a rizika
 
 ## Bezpečnost
 
-- Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsldku požadavku na zachování eshopu)
+- Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsldku požadavku na zachování e-shopu)
 - Nedostupnost služeb v nové architektuře (chyba konfigurace sítě nebo směrovacích pravidel a filtrů na reverse proxy)
-- Pokud z dat z eshopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože starý eshop nemá prostředky na řízení platnosti **JWT**
+- Pokud z dat z e-shopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože starý e-shop nemá prostředky na řízení platnosti **JWT**
 
 ## Provoz a dostupnost
 
-- Single Point of Failure (autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Autorizační služba -> Postgre. Výpadek Postgre zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v eshopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
-- Rate limiting a monitoring: Nginx má prostor pro WAF/rate-limit, ale bez bližší specifikace metrik tohoto bodu bude otevřený brute-force útoku na služby (avšak stav je stejný jako u bodu 0 - tedy jednotlivých služeb)
+- Single Point of Failure (autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Autorizační služba -> Postgre. Výpadek Postgre zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v e-shopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
+- Rate limiting a monitoring: Nginx má prostor pro firewall/rate-limit, ale bez bližší specifikace metrik tohoto bodu bude otevřený brute-force útoku na služby (avšak stav je stejný jako u jednotlivých služeb bez reverse proxy)
 
 ## Datová rizika
 
@@ -183,17 +201,15 @@ Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Poku
 
 ## Rizika škálování a technického řešení
 
-- PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro eshop. Existuje riziko, že eshop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
+- PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro e-shop. Existuje riziko, že e-shop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
 
 # Návrh jednotného přihlašovacího mechanismu
-
-# Technické požadavky
 
 # Uživatelská zkušenost
 
 # Migrace a implementace
 
-# Podrobný návrh technického řešení, včetně doporučení technologií
+# Podrobný návrh technického řešení
 
 # Návrh postupu implementace a migrace
 
