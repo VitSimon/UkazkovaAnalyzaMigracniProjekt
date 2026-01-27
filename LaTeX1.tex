@@ -1,0 +1,541 @@
+%Run commands:
+%makeindex -shell-escape LaTeX1
+%pdflatex -interaction=nonstopmode -shell-escape LaTeX1.tex
+
+\documentclass[a4paper,12pt]{article}
+
+\newcommand{\auth}{Vítězslav Šimon}
+\newcommand{\docname}{Návrh centralizované správy uživatelů}
+
+\UseRawInputEncoding
+
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{makeidx}
+\usepackage[final]{listings}
+
+\lstset{basicstyle=\ttfamily\small,literate={ {á}{{\'a}}1 {Á}{{\'A}}1 {č}{{\v{c}}}1 {Č}{{\v{C}}}1 {ď}{{\v{d}}}1 {Ď}{{\v{D}}}1 {é}{{\'e}}1 {É}{{\'E}}1 {ě}{{\v{e}}}1 {Ě}{{\v{E}}}1 {í}{{\'i}}1 {Í}{{\'I}}1 {ň}{{\v{n}}}1 {Ň}{{\v{N}}}1 {ó}{{\'o}}1 {Ó}{{\'O}}1 {ř}{{\r{r}}}1 {Ř}{{\r{R}}}1 {š}{{\v{s}}}1 {Š}{{\v{S}}}1 {ť}{{\v{t}}}1 {Ť}{{\v{T}}}1 {ú}{{\'u}}1 {Ú}{{\'U}}1 {ů}{{\u{u}}}1 {Ů}{{\u{U}}}1 {ý}{{\'y}}1 {Ý}{{\'Y}}1 {ž}{{\v{z}}}1 {Ž}{{\v{Z}}}1 } }
+
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+\usepackage{imakeidx}
+\makeindex[title=, columns=3]
+
+\usepackage{svg}
+
+\lstset{
+	numbers=left,
+	showstringspaces=false,
+	breaklines=true,
+	tabsize=2,
+	captionpos=b
+}
+
+\fancypagestyle{plain}{
+\fancyhf{}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\fancyhead[LE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+\fancyhead[RE]{\rightmark}
+\fancyhead[RO]{\leftmark}
+
+\fancyfoot[LE,RO]{\thepage / \pageref{LastPage}}
+\fancyfoot[LO,RE]{\docname}
+
+\fancyfoot[CO,CE]{}
+
+}
+
+\begin{document}
+
+\begin{titlepage}
+\vspace*{5cm}
+\begin{center}
+{\Huge \docname}\\[1cm]
+{\Large \auth}\\[1cm]
+{\today}
+\end{center}
+\end{titlepage}
+
+\newpage
+
+\pagestyle{plain}
+
+\tableofcontents
+\pagestyle{plain}
+\newpage
+
+\section{Návrh centralizované správy uživatelů}
+
+\section{Zadání}
+
+Jako klient disponujeme třemi službami typu B2C (např. store.klient.com) a
+klasickým prezentačním webem (klient.com). Tyto platformy fungují na různých technologiích a
+každá z nich má vlastní systém správy uživatelských účtů (username a heslo). Aktuálně
+připravujeme nový systém 3D konfigurátoru, ke kterému budou tito uživatelé také potřebovat
+přístup.\par
+
+Navrhněte způsob centralizované správy uživatelských účtů, která umožní využití
+stávajících uživatelských profilů z existujících systémů pro přístup k novému 3D konfigurátoru,
+bez nutnosti zakládání nového profilu do každé služby / aplikace zvlášť.\par
+
+\begin{itemize}
+
+\item Architektonické očekávání:\begin{itemize}
+
+\item Autentizace musí být řešena centrálně
+
+\item Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
+
+\end{itemize}
+
+
+
+\end{itemize}
+
+\section{Poznámky autora ke zpracování}
+
+\begin{itemize}
+
+\item Část informací v tomto dokumentu je převzata, případně odvozena z informací v zadání, které bylo poskytnuto
+
+\end{itemize}
+
+\section{Současný stav}
+
+V současné době je cílová platforma složena z těchto systémů:\par
+
+\begin{enumerate}
+
+\item B2C e-shop
+
+\item Prezentační produktový web
+
+\end{enumerate}
+
+Dále je v záměru vyvinout 3D konfigurátor produktů.\par
+
+\includesvg[H]{}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{src/img_1.jpg}
+\caption{Současná architektura}
+\label{fig:I_1}
+\end{figure}
+\par
+
+\subsection{B2C e-shop}
+
+\begin{itemize}
+
+\item Technologie: PHP (legacy řešení, převážně custom kód)\par
+
+
+
+\item Databáze: MySQL\par
+
+
+
+\item Autentizace:\par
+
+\begin{itemize}
+
+\item Přihlášení pomocí e-mailu nebo uživatelského jména a hesla
+
+\item Hesla jsou historicky ukládána pomocí různých hashovacích algoritmů (např. MD5, bcrypt)
+
+\item Systém nepodporuje SSO ani externí identity providery
+
+\end{itemize}
+
+
+
+\item Uživatelská data:\par
+
+\begin{itemize}
+
+\item Neexistuje globální identifikátor uživatele použitelný napříč systémy
+
+\item U části starších účtů chybí ověřený e-mail nebo jsou data nekompletní
+
+\end{itemize}
+
+
+
+\item Technická omezení:\par
+
+\begin{itemize}
+
+\item E-shop je dlouhodobě v produkčním provozu
+
+\item Zásahy do přihlašovací logiky jsou možné pouze v omezeném rozsahu (riziko regresí)
+
+\end{itemize}
+
+
+
+\end{itemize}
+\newpage
+\subsection{Prezentační produktový web}
+
+\begin{itemize}
+
+\item Frontend: Angular (SPA aplikace)
+
+\item Backend: .NET REST API
+
+\item Databáze: MS SQL
+
+\item Autentizace:\begin{itemize}
+
+\item Vlastní registrační a přihlašovací mechanismus
+
+\item Přihlášení pomocí e-mailu a hesla
+
+\item Moderní hashování hesel
+
+\end{itemize}
+
+
+
+\item Uživatelská data:\begin{itemize}
+
+\item Produktový web má samostatnou uživatelskou databázi, která je zcela nezávislá na e-shopu
+
+\item Uživatelé si zde mohou vytvořit účet výhradně pro účely práce s obsahem (např. ukládání konfigurací, poptávek, oblíbených produktů), aniž by měli nebo potřebovali účet v e-shopu
+
+\item V případě shodného e-mailu se stále jedná o odlišné účty v různých systémech
+
+\end{itemize}
+
+
+
+\item Funkční využití účtu:\begin{itemize}
+
+\item Ukládání konfigurací a poptávek
+
+\item Přístup k personalizovanému obsahu
+
+\end{itemize}
+
+
+
+\end{itemize}
+
+\subsection{3D konfigurátor produktů (záměr)}
+
+Aplikace je zmíněna v této chvíli jako budoucí záměr.\par
+
+\begin{itemize}
+
+\item Typ aplikace: samostatná webová aplikace (SPA)
+
+\item Technologie:\begin{itemize}
+
+\item Frontend: moderní JavaScript framework (např. React / Angular)
+
+\item Backend: REST nebo GraphQL API
+
+\end{itemize}
+
+
+
+\item Požadavky na autentizaci:\begin{itemize}
+
+\item Přístupný pouze přihlášeným uživatelům
+
+\item Musí umožnit využití stávajících uživatelských účtů z e-shopu i produktového webu
+
+\item \textbf{Nesmí obsahovat vlastní správu uživatelů}
+
+
+\end{itemize}
+
+
+
+\item Integrace:\begin{itemize}
+
+\item Konfigurátor bude dostupný:\begin{itemize}
+
+\item z e-shopu (např. z detailu produktu),
+
+\item z produktového webu,
+
+\item případně i samostatně přes přímý vstup (URL)
+
+\end{itemize}
+
+
+
+\end{itemize}
+
+
+
+\end{itemize}
+
+\section{Záměr cílového stavu}
+
+Na základě současného stavu a zjištěných požadavků bude v této kapitole naznačen v obecné rovině rámcový záměr budoucího cílového stavu.\par
+
+\subsection{Návrh architektury}
+
+\includesvg[H]{}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{src/img_2.jpg}
+\caption{Nová architektura - návrh}
+\label{fig:I_2}
+\end{figure}
+\par
+
+V rámci projektu bude nasazena \textbf{API brána (Nginx Reverse Proxy)}
+ s \textbf{centrální autentizační službou}
+ (Keycloak a PostgreSQL), která bude \textbf{předřazena před všechny requesty}
+ do původních aplikací (e-shop, produktový web, v budoucnu 3D konfigurátor).\par
+
+\textbf{Předpokládané dosažené cíle řešení:}
+\par
+
+\begin{itemize}
+
+\item \textbf{Žádné změny v aplikacích}
+ (například v e-shopu)
+
+\item Prostor pro \textbf{centralizované logování a monitoring}
+ všech requestů
+
+\item Prostor pro \textbf{zvýšení bezpečnosti}
+ (například TLS, firewall, rate limiting)
+
+\end{itemize}
+
+\subsection{Proces}
+
+\begin{enumerate}
+
+\item \textbf{API brána}
+ zachytí každý request a předá ho \textbf{centrální autentizační službě}
+
+
+\item \textbf{Při aktivním přihlášení}
+ (platná session/JWT - ověří si je ve své DB) přesměruje do konkrétní služby
+
+\item \textbf{Bez přihlášení přesměruje na login}
+ specifický pro cílovou službu (/eshop/login, /produkty/login), kterou určí z URI zachyceného požadavku
+
+\item Po \textbf{úspěšném}
+ přihlášení z jakékoli služby tato služba vytvoří potřebný \textbf{JWT}
+ nebo \textbf{PHPSESSID}
+ a také \textbf{autentizační služba}
+ zapíše do DB data v obecném dekodovaném formátu tak, aby z nich byla podle potřeby schopná sestavit JWT token (nebo jiný datagram) pro jinou technologii v budoucnu
+
+\end{enumerate}
+
+\textbf{Výsledek:}
+ Vznikne obdoba Single Sign-On (SSO) přes ekosystém bez nutnosti refaktoringu kódu aplikací.\par
+
+\subsubsection{Platná session/JWT}
+
+\includesvg[H]{}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{src/img_3.jpg}
+\caption{Zpracování : Platná session/JWT}
+\label{fig:I_3}
+\end{figure}
+\par
+
+\subsubsection{Neplatný/chybějící JWT/session}
+
+\includesvg[H]{}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{src/img_4.jpg}
+\caption{Zpracování : Neplatný/chybějící JWT/session}
+\label{fig:I_4}
+\end{figure}
+\par
+\newpage
+\subsection{3D konfigurátor produktů}
+
+Konfigurátor produktů bude očekávat pro klienta aktivní \textbf{JWT token}
+. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v \textbf{e-shopu}
+ a \textbf{produkt webu}
+. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - \textbf{nedostatek informací u produktového webu}
+) a v případě aspoň jedné shody sestaví \textbf{JWT token}
+. Pro e-shop navíc \textbf{PHPSESSID}
+, protože PHP e-shop pravděpodobně neumí \textbf{JWT}
+ zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.\par
+
+V případě registrace nového uživatele, bude uživatel přesměrován na registraci do \textbf{produkt webu}
+, protože je tato služba nejmodernější a konfigurátor sám podle požadavku nebude mít samostatnou databázi uživatelů.\par
+
+\section{Technické požadavky}
+
+\subsection{Zvolené technologie}
+
+\begin{itemize}
+
+\item \textbf{Reverse proxy (API brána)}
+Nginx - představuje prověřený, z hlediska využítí zdrojů efektivní, rychlý a vysoce výkonný server. Bude použit pro řízení směrování požadavků uživatelů na služby. Zajistí přesměrování na centrální autorizaci pro nepřihlášené uživatele. Pokud kterékoli službě chybí zabezpečené spojení, API brána umožňuje dokonfigurovat TLS bez zásahu do služby a posílit tak bezpečnost
+
+\item \textbf{centrální autentizační služba}
+Keycloak - je standardním v komerčním prostředí využívaným IAM open-source řešením pro federaci identit a jednotné přihlášení. Obsahuje velké množství integračních konektorů, které řeší protokoly jako například SAML, OAuth2, JWT tokeny. Stejně tak je schopen integrovat i jednotlivé databáze uživatelů na úrovni přímého čtení DB (\textbf{User Storage Provider SPI}
+). S ohledem na požadavek nezasahovat do služeb toto považuji za zajímavé.
+MFA se v rámci Keycloak konfiguruje v Realm Settings > Authentication > Flows, kde je možné vybrat z metod jako TOTP, WebAuthn nebo e-mail OTP, případně SMSPostgreSQL - ověřená open-source bezplatná serverová DB, která je přibližně o 10\% výkonnější než MySQL. Keycloak v případě potřeby umí pracovat také s MySQL/MariaDB.
+
+\end{itemize}
+
+\subsection{Funkční požadavky}
+
+\begin{itemize}
+
+\item Uživatel musí být nadále schopen využívat služby podle toho ve kterém systému je registrován
+
+\item Pomocí účtu v současných systémech musí uživatel být schopen přistoupit k budoucímu 3D konfigurátoru
+
+\item 3D konfigurátor bude k dispozici volně i bez přihlášení
+
+\item Systém ověří uživatele emailem a heslem
+
+\item Registrace nových uživatelů budou nadále probíhat podle systému, který si uživatel zvolí
+
+\end{itemize}
+
+\subsection{Nefunkční požadavky}
+
+\begin{itemize}
+
+\item Autentizace musí být řešena centrálně
+
+\item Řešení počítat s budoucím rozšířením o další aplikace a služby
+
+\item Centralizovaná autentizace s 99,9\% dostupností, pastavená na OAuth2 a JWT tokenech
+
+\item MFA pro všechny přístupy, audit logy
+
+\item API brána bude obsluhovat a řídit veškerý provoz v systému (kontrolou stavu přihlášení a předávání requestů na služby od uživatelů do serverů služeb)
+
+\end{itemize}
+
+\section{Výzvy a rizika}
+
+\subsection{Bezpečnost}
+
+\begin{itemize}
+
+\item Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsledku požadavku na zachování e-shopu beze změn)
+
+\item Nedostupnost služeb v nové architektuře (chyba konfigurace sítě nebo směrovacích pravidel a filtrů na reverse proxy)
+
+\item Pokud z dat z e-shopu vznikne \textbf{JWT}
+ pro \textbf{konfigurátor}
+, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože e-shop nemá prostředky na řízení platnosti \textbf{JWT}
+
+
+\end{itemize}
+
+\subsection{Provoz a dostupnost}
+
+\begin{itemize}
+
+\item Single Point of Failure (autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Autorizační služba -> Postgre. Výpadek Postgre zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v e-shopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
+
+\item Rate limiting a monitoring: Nginx má prostor pro firewall/rate-limit, ale bez bližší specifikace metrik tohoto bodu bude otevřený brute-force útoku na služby (avšak stav je stejný jako u jednotlivých služeb bez reverse proxy)
+
+\end{itemize}
+
+\subsection{Datová rizika}
+
+\begin{itemize}
+
+\item Při budoucím rozvoji a sdílení uživatelských bází systémů napříč ekosystémem může dojít k nesprávnému sdílení dat mezi účty, porušení uděleného GDPR souhlasu nebo rozsahu tohoto uděleného souhlasu (použití souhlasu pro jinou oblast).
+
+\item Ukládání v PostgreSQL bude nešifrované nebo bude řešeno slabou šifrou. Existuje zde riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v operačním systému serveru
+
+\item 3D konfigurátor bude bez vlastní DB - při spoléhání na \textbf{JWT}
+ tokeny z jiných systémů existuje riziko, že práva nebo role v systémech budou změněny, ale uživatel díky ještě platnému tokenu bude dočasně pracovat s širší sadou práv než mu od určitého okamžiku náleží.
+
+\end{itemize}
+
+\subsection{Rizika škálování a technického řešení}
+
+\begin{itemize}
+
+\item PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). Autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro e-shop. Existuje riziko, že e-shop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
+
+\end{itemize}
+
+\section{Uživatelská zkušenost}
+
+Návrh předpokládá, že uživatelská zkušenost nebude negativně dotčena. Bude nadále možné využívat uživatelské účty, které už uživatelé mají bez nutnosti zásahu z jejich strany. Integrovaný systém bude z pohledu uživatele nadále využívat stejné přihlašovací obrazovky, jako byli zvyklí doposud.\par
+
+Navržené řešení však otevírá cestu k vyšší bezpečnosti systému jako celku, ale zároveň ji nezbytně nevynucuje. Implementaci lze provést i později (například MFA a další kroky ověření).\par
+
+V případě nového 3D konfigurátoru je zmíněný proces složitější a u této služby bude použita jednotná přihlašovací obrazovka, kterou bude třeba dokonfigurovat s úpravou CSS stylu a použitím konfiguračních voleb na straně \textbf{Keycloak}
+, aby obrazovka vyhovovala grafickému vizuálu. Je možné, že některé části komunikace s uživatelem budou potřebovat úpravu jazykových řetězců.\par
+
+\subsection{Minimalizace dopadů na uživatele}
+
+Z rozboru předpokládané uživatelské zkušenosti vyplývá, že je možné body, které mají negativní dopad na uživatele (především bezpečnost - \textbf{MFA}
+) zavádět později, případně nezavádět vůbec. Avšak je potřeba zmínit, že bezpečnost obecně za jisté mírné nepohodlí pro uživatele (jeden ověřovací krok, případně údaj v systému navíc) stojí.\par
+
+\section{Migrace a implementace}
+
+\subsection{Migrace}
+
+Datová migrace v systému nebude podle návrhu probíhat.\par
+
+\subsection{Implementace}
+
+(poznámka autora: pro ilustraci volím on premise přístup)\par
+
+\begin{enumerate}
+
+\item Pořízení nebo určení fyzického HW (serveru) - Doporučená konfigurace: 32 GB RAM, CPU 6 fyzických jader, SSD disk 80 GB a více
+
+\item Instalace systému platformy Linux (například distribuce Alpine (velikost do 500 MB), případně Debian nebo Red Hat)
+
+\item Instalace \textbf{Podman}
+ a \textbf{Kubernetes}
+ na fyzický systém
+
+\item V rámci \textbf{iptables}
+ je třeba provést konfigurací podsítí, omezit otevřené protokoly a porty na fyzickém systému
+
+\item Doplnění balíčku \textbf{fail2ban}
+ a konfigurace k posílení bezpečnosti fyzického systému
+
+\item V rámci \textbf{Podman}
+ a \textbf{Kubernetes}
+ provést přípravu definic sady služeb (soubor \textbf{compose.yml}
+) s definicí jednotlivých celků (NGinx, Keycloak)
+
+\item Služby, které nelze kontejnerizovat, budou ponechány na serverech, na kterých jsou. Měl by však být proveden audit způsobu zálohování a přezkoušet způsobilost prováděných záloh k obnově po havárii na izolované prázdné instamci systému. Tyto služby NGinx server umí obsluhovat, pokud budou servery řádně zasíťovány
+
+\item NGinx, Keycloak mají rozsáhlé dokumentace s příklady konfigurací, podle kterých je možno postupovat (poznámka autora: dle zadání nebude dokument tento bod více řešit)
+
+\end{enumerate}
+
+
+\pagestyle{fancy}
+\listoffigures
+\printindex
+
+\end{document}
