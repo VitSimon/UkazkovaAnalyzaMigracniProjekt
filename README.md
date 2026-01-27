@@ -97,7 +97,7 @@ graph TD
 
 Na základě současného stavu a zjištěných požadavků bude v této kapitole naznačen v obecné rovině rámcový záměr budoucího cílového stavu.
 
-Záměr je vyvinout službu jednotného přihlášení, která bude procházet dvě báze dat uživatelských účtů a vstupní informace od uživatelů (email a heslo) proti těmto bázím ověřovat. Služba bude v případě úspěšného ověření zpřístupňovat potřebnou funkcionalitu. Z propojených služeb bude předávána URI služby v parametru **returnUrl**. Pokud předána nebude
+## Návrh architektury
 
 ```mermaid
 graph TD
@@ -113,6 +113,7 @@ graph TD
     
     subgraph auth["Autorizační služba"]
         AS[React/Angular + REST<br/>Dual-check logika]
+        DB3[(Redis)]
     end
     
     subgraph eshop["E-shop"]
@@ -132,6 +133,7 @@ graph TD
     end
     
     RP --> AS
+    DB3 --> AS
     RP --> PHP1
     RP --> NET
     RP --> K
@@ -140,21 +142,37 @@ graph TD
     class RP gateway
 ```
 
-## B2C e-shop
+V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrální autentizační službou** (.NET Core, Redis), která bude **předřazena před všechny requesty** do původních aplikací (e-shop, produktový web, v budoucnu 3D konfigurátor).
 
-Vzhledem k tomu, že tento e-shop je v produkci, je tedy vysoce nežádoucí aby došlo k jakémukoli výpadku nebo nestabilitě aplikace nebo jejích procesů. Je tedy nutné tuto součást řešení ponechat beze změn.
+**Předpokládané dosažené cíle řešení:**
+- **Žádné změny v aplikacích** (například v e-shopu)
+- Prostor pro **centralizované logování a monitoring** všech requestů
+- Prostor pro **zvýšení bezpečnosti** (například TLS, WAF, rate limiting)
 
-Pro budoucí řešení je však potřeba následující:
-- spolehlivě zjistit **přesný algoritmus šifrování hesel a jeho parametry**,
-- zajistit propojení ostatních služeb do **MySQL** databáze e-shopu pomocí servisního uživatele pro čtení, aby bylo možné integrovat účty, které jsou zde uložené
+## Proces
 
-## Prezentační produktový web
+1. **API brána** zachytí každý request a předá ho **centrální autentizační službě**
+2. **Při aktivním přihlášení** (platná session/JWT - ověří si je ve své Redis DB) přesměruje do konkrétní služby
+3. **Bez přihlášení přesměruje na login** specifický pro cílovou službu (/eshop/login, /produkty/login), kterou určí z URI zachyceného požadavku
+4. Po **úspěšném** přihlášení z jakékoli služby tato služba vytvoří potřebný **JWT** nebo **PHPSESSID** a také **autentizační služba** zapíše do **Redis** data v obecném dekodovaném formátu tak, aby z nich byla podle potřeby schopná sestavit JWT token (nebo jiný datagram) pro jinou technologii v budoucnu
+
+**Výsledek:** Vznikne obdoba Single Sign-On (SSO) přes ekosystém bez nutnosti refaktoringu kódu aplikací.
 
 ## 3D konfigurátor produktů
 
+Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v **eshopu** a **produkt webu**. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - **nedostatek informací u produktového webu**) a v případě aspoň jedné shody sestaví **JWT token**. Pro eshop navíc **PHPSESSID**, protože PHP eshopu pravděpodobně neumí **JWT** zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.
+
 # Výzvy a rizika
 
-- 
+## Bezpečnost
+
+- Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsldku požadavku na zachování eshopu)
+- Nedostupnost služeb v nové architektuře (chyba konfigurace sítě nebo směrovacích pravidel a filtrů na reverse proxy)
+- Pokud z dat z eshopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku Redis DB, protože starý eshop nemá prostředky na řízení platnosti **JWT**
+
+## Provoz a dostupnost
+
+- Single Point of Failure (Redis + Auth služba) - všechny requesty projdou přes řetězec Nginx -> Auth -> Redis. Výpadek Redis zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session.
 
 ## B2C e-shop
 
