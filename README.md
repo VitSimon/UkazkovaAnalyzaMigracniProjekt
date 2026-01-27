@@ -172,7 +172,18 @@ Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Poku
 
 ## Provoz a dostupnost
 
-- Single Point of Failure (Redis + Auth služba) - všechny requesty projdou přes řetězec Nginx -> Auth -> Redis. Výpadek Redis zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session.
+- Single Point of Failure (Redis a autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Auth -> Redis. Výpadek Redis zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v eshopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
+- Rate limiting a monitoring: Nginx má prostor pro WAF/rate-limit, ale bez bližší specifikace metrik tohoto bodu bude otevřený brute-force útoku na služby (avšak stav je stejný jako u bodu 0 - tedy jednotlivých služeb)
+
+## Datová rizika
+
+- Při budoucím rozvoji a sdílení uživatelských bází systémů napříč ekosystémem může dojít k nesprávnému sdílení dat mezi účty, porušení uděleného GDPR souhlasu (čl. 9) nebo rozsahu tohoto uděleného souhlasu (použití souhlasu pro jinou oblast).
+- Ukládání v Redis bude nešifrované nebo bude řešeno slabou šifrou. Tím že Redis ukládá na disk existuje riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v systému
+- 3D konfigurátor bude bez vlastní DB - při spoléhání na **JWT** tokeny z jiných systémů existuje riziko, že práva nebo role v systémech budou změněny, ale uživatel díky ještě platnému tokenu bude dočasně pracovat s širší sadou práv než mu od určitého okamžiku náleží.
+
+## Rizika škálování a technického řešení
+
+- PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro eshop. Existuje riziko, že eshop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
 
 ## B2C e-shop
 
