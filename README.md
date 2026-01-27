@@ -112,8 +112,8 @@ graph TD
     end
     
     subgraph auth["Autorizační služba"]
-        AS[React/Angular + REST<br/>Dual-check logika]
-        DB3[(Redis)]
+        AS[Keycloak]
+        DB3[(PostgreSQL)]
     end
     
     subgraph eshop["E-shop"]
@@ -142,7 +142,7 @@ graph TD
     class RP gateway
 ```
 
-V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrální autentizační službou** (.NET Core, Redis), která bude **předřazena před všechny requesty** do původních aplikací (e-shop, produktový web, v budoucnu 3D konfigurátor).
+V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrální autentizační službou** (Keycloak a PostgreSQL), která bude **předřazena před všechny requesty** do původních aplikací (e-shop, produktový web, v budoucnu 3D konfigurátor).
 
 **Předpokládané dosažené cíle řešení:**
 - **Žádné změny v aplikacích** (například v e-shopu)
@@ -152,9 +152,9 @@ V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrá
 ## Proces
 
 1. **API brána** zachytí každý request a předá ho **centrální autentizační službě**
-2. **Při aktivním přihlášení** (platná session/JWT - ověří si je ve své Redis DB) přesměruje do konkrétní služby
+2. **Při aktivním přihlášení** (platná session/JWT - ověří si je ve své DB) přesměruje do konkrétní služby
 3. **Bez přihlášení přesměruje na login** specifický pro cílovou službu (/eshop/login, /produkty/login), kterou určí z URI zachyceného požadavku
-4. Po **úspěšném** přihlášení z jakékoli služby tato služba vytvoří potřebný **JWT** nebo **PHPSESSID** a také **autentizační služba** zapíše do **Redis** data v obecném dekodovaném formátu tak, aby z nich byla podle potřeby schopná sestavit JWT token (nebo jiný datagram) pro jinou technologii v budoucnu
+4. Po **úspěšném** přihlášení z jakékoli služby tato služba vytvoří potřebný **JWT** nebo **PHPSESSID** a také **autentizační služba** zapíše do DB data v obecném dekodovaném formátu tak, aby z nich byla podle potřeby schopná sestavit JWT token (nebo jiný datagram) pro jinou technologii v budoucnu
 
 **Výsledek:** Vznikne obdoba Single Sign-On (SSO) přes ekosystém bez nutnosti refaktoringu kódu aplikací.
 
@@ -168,27 +168,22 @@ Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Poku
 
 - Slabé šifrovací algoritmy zůstávají přítomné v systému (v důsldku požadavku na zachování eshopu)
 - Nedostupnost služeb v nové architektuře (chyba konfigurace sítě nebo směrovacích pravidel a filtrů na reverse proxy)
-- Pokud z dat z eshopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku Redis DB, protože starý eshop nemá prostředky na řízení platnosti **JWT**
+- Pokud z dat z eshopu vznikne **JWT** pro **konfigurátor**, může dojít bez refresh mechanismu k impersonaci při úniku DB, protože starý eshop nemá prostředky na řízení platnosti **JWT**
 
 ## Provoz a dostupnost
 
-- Single Point of Failure (Redis a autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Auth -> Redis. Výpadek Redis zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v eshopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
+- Single Point of Failure (autorizační služba) - všechny requesty projdou přes řetězec Nginx -> Autorizační služba -> Postgre. Výpadek Postgre zablokuje celý ekosystém, včetně e-shopu. Řešením by byl záložní přechod (fallback) na lokální session, která v eshopu je a zůstane zachována (byla by však nutná větší konfigurace právě na API bráně).
 - Rate limiting a monitoring: Nginx má prostor pro WAF/rate-limit, ale bez bližší specifikace metrik tohoto bodu bude otevřený brute-force útoku na služby (avšak stav je stejný jako u bodu 0 - tedy jednotlivých služeb)
 
 ## Datová rizika
 
-- Při budoucím rozvoji a sdílení uživatelských bází systémů napříč ekosystémem může dojít k nesprávnému sdílení dat mezi účty, porušení uděleného GDPR souhlasu (čl. 9) nebo rozsahu tohoto uděleného souhlasu (použití souhlasu pro jinou oblast).
-- Ukládání v Redis bude nešifrované nebo bude řešeno slabou šifrou. Tím že Redis ukládá na disk existuje riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v systému
+- Při budoucím rozvoji a sdílení uživatelských bází systémů napříč ekosystémem může dojít k nesprávnému sdílení dat mezi účty, porušení uděleného GDPR souhlasu nebo rozsahu tohoto uděleného souhlasu (použití souhlasu pro jinou oblast).
+- Ukládání v PostgreSQL bude nešifrované nebo bude řešeno slabou šifrou. Existuje zde riziko úniku dat přes stránkovací soubor nebo RAM v případě selhání v oddělených adresních prostorech procesů v operačním systému server
 - 3D konfigurátor bude bez vlastní DB - při spoléhání na **JWT** tokeny z jiných systémů existuje riziko, že práva nebo role v systémech budou změněny, ale uživatel díky ještě platnému tokenu bude dočasně pracovat s širší sadou práv než mu od určitého okamžiku náleží.
 
 ## Rizika škálování a technického řešení
 
 - PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro eshop. Existuje riziko, že eshop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
-
-## B2C e-shop
-
-- Je potřeba ověřit vhodnost práce eshopu s ohledem na 
-
 
 # Návrh jednotného přihlašovacího mechanismu
 
