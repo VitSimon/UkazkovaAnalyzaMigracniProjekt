@@ -16,7 +16,7 @@ bez nutnosti zakládání nového profilu do každé služby / aplikace zvláš�
   - Autentizace musí být řešena centrálně
   - Řešení má být připraveno na budoucí rozšíření o další aplikace a služby
 
-# Poznámky autora ke zperacování
+# Poznámky autora ke zpracování
 
 - Část informací v tomto dokumentu je převzata, případně odvozena z informací v zadání, které bylo poskytnuto
 
@@ -94,23 +94,6 @@ graph TD
     - z produktového webu,
     - případně i samostatně přes přímý vstup (URL)
 
-# Technické požadavky
-
-## Funkční požadavky
-
-- Uživatel musí být nadále schopen využívat služby podle toho ve kterém systému je registrován
-- Pomocí účtu v současných systémech musí uživatel být schopen přistoupit k budoucímu 3D konfigurátoru
-- Systém ověří uživatele emailem a heslem
-- Registrace nových uživatelů budou nadále probíhat podle systému, který si uživatel zvolí
-
-## Nefunkční požadavky
-
-- Autentizace musí být řešena centrálně
-- Řešení počítat s budoucím rozšířením o další aplikace a služby
-- Centralizovaná autentizace s 99,9% dostupností, pastavená na OAuth2 a JWT tokenech
-- MFA pro všechny přístupy, audit logy
-- API brána bude obsluhovat a řídit veškerý provoz v systému (kontrolou stavu přihlášení a předávání requestů na služby od uživatelů do serverů služeb)
-
 # Záměr cílového stavu
 
 Na základě současného stavu a zjištěných požadavků bude v této kapitole naznačen v obecné rovině rámcový záměr budoucího cílového stavu.
@@ -180,6 +163,34 @@ V rámci projektu bude nasazena **API brána (Nginx Reverse Proxy)** s **centrá
 
 Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Pokud jej nezíská, uživatel bude přesměrován na novou přihlašovací obrazovku (zajistí ji autorizační služba), která převezme data od uživatele (email a heslo) a provede s nimi kontroly, které odpovídají logice ověřování v **e-shopu** a **produkt webu**. Bude fungovat tak, že ověří oba dva zdroje paralelně (logika z aplikací bude zkopírována, pokud nebude možné na straně aplikace provolat endpoint - **nedostatek informací u produktového webu**) a v případě aspoň jedné shody sestaví **JWT token**. Pro e-shop navíc **PHPSESSID**, protože PHP e-shop pravděpodobně neumí **JWT** zpracovávat. Obsahem JWT tokenu budou data o právech z konkrétního systému, který potvrdil shodu přihlašovacích údajů.
 
+V případě registrace nového uživatele, bude uživatel přesměrován na registraci do **produkt webu**, protože je tato služba nejmodernější a konfigurátor sám podle požadavku nebude mít samostatnou databázi uživatelů.
+
+# Technické požadavky
+
+## Zvolené technologie
+
+- **Reverse proxy (API brána)**  
+  Nginx - představuje prověřený, z hlediska využítí zdrojů efektivní, rychlý a vysoce výkonný server. Bude použit pro řízení směrování požadavků uživatelů na služby. Zajistí přesměrování na centrální autorizaci pro nepřihlášené uživatele. Pokud kterékoli službě chybí zabezpečené spojení, API brána umožňuje dokonfigurovat TLS bez zásahu do služby a posílit tak bezpečnost
+- **centrální autentizační služba**  
+  Keycloak - je standardním v komerčním prostředí využívaným IAM open-source řešením pro federaci identit a jednotné přihlášení. Obsahuje velké množství integračních konektorů, které řeší protokoly jako například SAML, OAuth2, JWT tokeny. Stejně tak je schopen integrovat i jednotlivé databáze uživatelů na úrovni přímého čtení DB (**User Storage Provider SPI**). S ohledem na požadavek nezasahovat do služeb toto považuji za zajímavé.
+  MFA se v rámci Keycloak konfiguruje v Realm Settings > Authentication > Flows, kde je možné vybrat z metod jako TOTP, WebAuthn nebo e-mail OTP, případně SMS
+
+## Funkční požadavky
+
+- Uživatel musí být nadále schopen využívat služby podle toho ve kterém systému je registrován
+- Pomocí účtu v současných systémech musí uživatel být schopen přistoupit k budoucímu 3D konfigurátoru
+- 3D konfigurátor bude k dispozici volně i bez přihlášení
+- Systém ověří uživatele emailem a heslem
+- Registrace nových uživatelů budou nadále probíhat podle systému, který si uživatel zvolí
+
+## Nefunkční požadavky
+
+- Autentizace musí být řešena centrálně
+- Řešení počítat s budoucím rozšířením o další aplikace a služby
+- Centralizovaná autentizace s 99,9% dostupností, pastavená na OAuth2 a JWT tokenech
+- MFA pro všechny přístupy, audit logy
+- API brána bude obsluhovat a řídit veškerý provoz v systému (kontrolou stavu přihlášení a předávání requestů na služby od uživatelů do serverů služeb)
+
 # Výzvy a rizika
 
 ## Bezpečnost
@@ -203,25 +214,33 @@ Konfigurátor produktů bude očekávat pro klienta aktivní **JWT token**. Poku
 
 - PHP, .NET a JavaScript jako doposud zmíněné technologie každé pracují se svým standardem přihlášení (PHPSESSID a navržené JWT). .NET Core autorizační služba musí zajistit validní PHP session v kontextu staršího PHP pro e-shop. Existuje riziko, že e-shop může být náchylný k CSRF útoku, případně session fixation (záleží na verifikačních pravidlech za jakých byl vyvinut).
 
-# Návrh jednotného přihlašovacího mechanismu
-
 # Uživatelská zkušenost
+
+Návrh předpokládá, že uživatelká zkušenost nebude negativně dotčena. Bude nadále možné využívat uživatelské účty, které už uživatelé mají bez nutnosti zásahu z jejich strany. Integrovaný systém bude z pohledu uživatele nadále využívat stejné přihlašovací obrazovky, jako byli zvyklí doposud.
+
+Navržené řešení však otevírá cestu k vyšší bezpečnosti systému jako celku, ale zároveň ji nezbytně nevynucuje. Implementaci lze provést i později (například MFA a další kroky ověření).
+
+V případě nového 3D konfigurátoru je zmíněný proces složitější a u této služby bude použita jednotná přihlašovací obrazovka, kterou bude třeba dokonfigurovat s úpravou CSS stylu a použitím konfiguračních voleb na straně **Keycloak**, aby obrazovka vyhovovala grafickému vizuálu. Je možné, že některé části komunikace s uživatelem budou potřebovat úpravu jazykových řetězců.
+
+## Návrh na minimalizaci dopadů na uživatelskou zkušenost
+
+Z rozboru předpokládané uživatelské zkušenosti vyplývá, že je možné body, které mají negativní dopad na uživatele (především bezpečnost - **MFA**) zavádět později, případně nezavádět vůbec. Avšak je potřeba zmínit, že bezpečnost obecně za jisté mírné nepohodlí pro uživatele (jeden ověřovací krok, případně údaj v systému navíc) stojí.
 
 # Migrace a implementace
 
-# Podrobný návrh technického řešení
+## Migrace
 
-# Návrh postupu implementace a migrace
+Datová migrace v systému nebude podle návrhu probíhat.
 
-# Návrh na minimalizaci dopadů na uživatelskou zkušenost
+## Implementace
 
+(poznámka autora: pro ilustraci volím on premise přístup)
 
-Předložené řešení by mělo obsahovat:
-- Analýzu současného stavu a identifikaci klíčových výzev.
-- Podrobný návrh technického řešení, včetně doporučení technologií.
-- Návrh postupu implementace a migrace.
-- Návrh na minimalizaci dopadů na uživatelskou zkušenost.
-
-Poznámka: Řešení by mělo zohledňovat fakt, že e-shop je klíčový pro tržby a
-výpadky nebo výrazné zásahy do login procesu nejsou akceptovatelné. Nevyžaduje se detailní
-technická implementace ani kód, důraz je kladen na architekturu, postup a zdůvodnění návrhu.
+1. Pořízení nebo určení fyzického HW (serveru) - Doporučená konfigurace: 32 GB RAM, CPU 6 fyzických jader, SSD disk 80 GB a více
+2. Instalace systému platformy Linux (například distribuce Alpine (velikost do 500 MB), případně Debian nebo Red Hat)
+3. Instalace **Podman** a **Kubernetes** na fyzický systém
+4. V rámci **iptables** je třeba provést konfigurací podsítí, omezit otevřené protokoly a porty na fyzickém systému
+5. Doplnění balíčku **fail2ban** a konfigurace k posílení bezpečnosti fyzického systému
+6. V rámci **Podman** a **Kubernetes** provést přípravu definic sady služeb (soubor **compose.yml**) s definicí jednotlivých celků (NGinx, Keycloak)
+7. Služby, které nelze kontejnerizovat, budou ponechány na serverech, na kterých jsou, měl by však být proveden audit způsobu zálohování a přezkoušet způsobilost prováděných záloh k obnově po havárii na izolované prázdné instamci systému. Tyto služby NGinx server umí obsluhovat, pokud budou servery řádně zasíťovány
+8. NGinx, Keycloak mají rozsáhlé dokumentace s příklady konfigurací, podle kterých je možno postupovat (poznámka autora: dle zadání nebude dokument tento bod více řešit)
