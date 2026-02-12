@@ -1,6 +1,6 @@
 # Návrh centralizované správy uživatelů
 
-Práce byla vyhotovena zadarmo pro konkrétní společnost v rámci výběrového řízení. 
+Práce byla vyhotovena zadarmo pro konkrétní společnost v rámci výběrového řízení jako zkušební úloha. 
 Společnost projevila uznání a spokojenost s prací tímto emailem:
 
 ```
