@@ -1,5 +1,14 @@
 # Návrh centralizované správy uživatelů
 
+Práce byla vyhotovena zadarmo pro konkrétní společnost v rámci výběrového řízení. 
+Společnost projevila uznání a spokojenost s prací tímto emailem:
+
+```
+Rád bych zdůraznil, že Vaše technické znalosti a zkušenosti hodnotíme velmi pozitivně.
+```
+
+K uzavření dohody nedošlo.
+
 # Zadání
 
 Jako klient disponujeme třemi službami typu B2C (např. store.klient.com) a
